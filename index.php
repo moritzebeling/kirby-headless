@@ -1,7 +1,6 @@
 <?php
 
 load([ 'moritzebeling\\headless\\jsonResponse' => 'src/jsonResponse.php' ], __DIR__);
-
 use moritzebeling\headless\jsonResponse as jsonResponse;
 
 Kirby::plugin('moritzebeling/headless', [
@@ -11,9 +10,14 @@ Kirby::plugin('moritzebeling/headless', [
 		'expires' => 1440
 	],
 
+	'controllers' => [
+        'site' => require 'controllers/site.php',
+    ],
+
 	'routes' => [
 		[
 			'pattern' => 'json/(:all)',
+			'method' => 'GET',
 			'action'  => function ( $id ) {
 
 				// if $id is empty, return site data
@@ -32,22 +36,21 @@ Kirby::plugin('moritzebeling/headless', [
 					}
 				}
 
-				if( $id === 'site' ){
-					// site
-					$response->data( $kirby->site()->json( true ) );
+				$page = $id === 'site' ? $kirby->site() : $kirby->page( $id );
 
-				} else if( $page = $kirby->page( $id ) ){
-					// page
-					$response->data( $page->json( true ) );
-
-				} else {
-					// 404
+				if( !$page ){
+					// page not found
 					$response->status( 404 );
 					return $response->json();
-
 				}
 
+				// create dataset from controller
+				$response->data(
+					$kirby->controller( 'imprint', compact('page') )
+				);
+
 				if( option('moritzebeling.headless.cache', false) ){
+					// save to cache
 					$cache->set(
 						$id,
 						$response->data(),
@@ -86,6 +89,7 @@ Kirby::plugin('moritzebeling/headless', [
 			$json = [
 				'title' => $this->title()->value(),
 				'path' => $this->id(),
+				'template' => $this->intendedTemplate()->name(),
 				'image' => $hasImages ? $this->image()->json() : null
 			];
 
@@ -98,7 +102,7 @@ Kirby::plugin('moritzebeling/headless', [
 			}
 
 			return $json;
-        }
+		},
 	],
 
 	'pagesMethods' => [
