@@ -65,18 +65,17 @@ Kirby::plugin('moritzebeling/headless', [
 
 				// if $id is empty, return site data
 				$id = $id ? $id : 'site';
+				$kirby = kirby();
 
 				$response = new jsonResponse( $id );
 
-				$kirby = kirby();
-
 				if( option('moritzebeling.headless.cache', false) ){
-					$cache = $kirby->cache('moritzebeling.frontend');
+					$cache = $kirby->cache('moritzebeling.headless');
 
 					if( $data = $cache->get( $id ) ){
 						// response is cached and ready to go
 						$response->data( $data, true );
-						return $response;
+						return $response->json();
 					}
 				}
 
@@ -91,7 +90,7 @@ Kirby::plugin('moritzebeling/headless', [
 				} else {
 					// 404
 					$response->status( 404 );
-					return $response;
+					return $response->json();
 
 				}
 
@@ -103,7 +102,7 @@ Kirby::plugin('moritzebeling/headless', [
 					);
 				}
 
-				return $response;
+				return $response->json();
 			}
 		],
 	],
