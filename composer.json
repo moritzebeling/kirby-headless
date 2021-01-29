@@ -1,0 +1,12 @@
+{
+    "name": "moritzebeling/headless",
+    "description": "Provide a public json API for any other application",
+    "version": "0.1",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Moritz EBeling",
+            "email": "email@moritzebeling.com"
+        }
+    ]
+}
