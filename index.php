@@ -18,10 +18,11 @@ Kirby::plugin('moritzebeling/headless', [
 		[
 			'pattern' => 'json/(:all)',
 			'method' => 'GET',
-			'action'  => function ( $id ) use ($kirby) {
+			'action'  => function ( $id ) {
 
 				// if $id is empty, return site data
 				$id = $id ? $id : 'site';
+				$kirby = kirby();
 
 				$response = new jsonResponse( $id );
 
@@ -35,28 +36,31 @@ Kirby::plugin('moritzebeling/headless', [
 					}
 				}
 
-				$page = $id === 'site' ? $kirby->site() : $kirby->page( $id );
+				if( $id === 'site' ){
+					// global site information
+					$data = $kirby->controller( 'global', $kirby->site() );
 
-				if( !$page ){
+				} else if ( $page = $kirby->page( $id ) ){
+					// page
+					$data = $kirby->controller( $page->intendedTemplate()->name(), compact('page') );
+
+				} else {
 					// page not found
 					$response->status( 404 );
 					return $response->json();
-				}
 
-				// create dataset from controller
-				$response->data(
-					$kirby->controller( 'imprint', compact('page') )
-				);
+				}
 
 				if( option('moritzebeling.headless.cache', false) ){
 					// save to cache
 					$cache->set(
 						$id,
-						$response->data(),
+						$data,
 						option('moritzebeling.headless.expires',1440)
 					);
 				}
 
+				$response->data( $data );
 				return $response->json();
 			}
 		],
