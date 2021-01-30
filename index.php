@@ -18,11 +18,10 @@ Kirby::plugin('moritzebeling/headless', [
 		[
 			'pattern' => 'json/(:all)',
 			'method' => 'GET',
-			'action'  => function ( $id ) {
+			'action'  => function ( $id ) use ($kirby) {
 
 				// if $id is empty, return site data
 				$id = $id ? $id : 'site';
-				$kirby = kirby();
 
 				$response = new jsonResponse( $id );
 
