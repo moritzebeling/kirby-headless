@@ -14,7 +14,6 @@ function flushCache( $id = false ){
 			$cache->remove( implode( '/', $parts ) );
 			array_pop( $parts );
 		}
-		$cache->remove( 'archive' );
 	}
 }
 
