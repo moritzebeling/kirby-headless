@@ -24,6 +24,19 @@ which are triggered within the route. Take a look at the code to see what fields
 
 It’s probably recommended to not use this plugin as a submodule, because you might want to edit it to match your needs.
 
+## CORS Settings
+
+To reach your API endpoint from a remote server, you will need to allow Cross Origin Resource Sharing. Besides HTTPS, these rules might help you to set it up:
+```php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: *');
+header('Access-Control-Allow-Methods: GET, OPTIONS, HEAD, CONNECT, POST');
+header('Access-Control-Expose-Headers: *');
+header('Access-Control-Max-Age: 5');
+header('Timing-Allow-Origin: *');
+header('Content-Type: application/json');
+```
+
 ## Warning
 
 Please note that the provided enpoint is public and doesn’t require auth. That means that anyone can access it. So please use it only for non-sensible data.
