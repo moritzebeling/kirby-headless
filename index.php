@@ -11,6 +11,7 @@ Kirby::plugin('moritzebeling/headless', [
 	],
 
 	'controllers' => [
+        'global' => require 'controllers/global.php',
         'site' => require 'controllers/site.php',
     ],
 
@@ -38,7 +39,7 @@ Kirby::plugin('moritzebeling/headless', [
 
 				if( $id === 'site' ){
 					// global site information
-					$data = $kirby->controller( 'global', $kirby->site() );
+					$data = $kirby->controller( 'global', [$kirby->site()] );
 
 				} else if ( $page = $kirby->page( $id ) ){
 					// page
