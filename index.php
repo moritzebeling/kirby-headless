@@ -7,7 +7,11 @@ Kirby::plugin('moritzebeling/headless', [
 
 	'options' => [
 		'cache' => true,
-		'expires' => 1440
+		'expires' => 1440,
+		'thumbs' => [
+			'thumb' => ['width' => 426],
+			'srcset' => [640, 854, 1280, 1920],
+		],
 	],
 
 	'controllers' => [
@@ -124,10 +128,19 @@ Kirby::plugin('moritzebeling/headless', [
 	'fileMethods' => [
 		'json' => function ( bool $includeParent = false ): array {
 
+			$srcset = [];
+			foreach( option('moritzebeling.headless.thumbs.srcset') as $width ){
+				$srcset[] = [
+					'width' => $width,
+					'url' => $this->thumb(['width' => $width])->url(),
+				];
+			}
+
 			$json = [
-				'url' => $this->url(),
-				'orientation' => $this->orientation(),
-				'alt' => $this->title()->value(),
+				'alt' => $this->alt(),
+				'caption' => $this->caption()->kirbytextinline(),
+				'url' => $this->thumb( option('moritzebeling.headless.thumbs.thumb') )->url(),
+				'srcset' => $srcset
 			];
 
 			if( $includeParent === true ){
