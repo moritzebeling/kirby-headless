@@ -43,11 +43,11 @@ Kirby::plugin('moritzebeling/headless', [
 
 				if( $id === 'site' ){
 					// global site information
-					$data = $kirby->controller( 'global', [$kirby->site()] );
+					$data = $kirby->site()->json( true );
 
 				} else if ( $page = $kirby->page( $id ) ){
 					// page
-					$data = $kirby->controller( $page->intendedTemplate()->name(), compact('page') );
+					$data = $page->json( true );
 
 				} else {
 					// page not found
@@ -99,22 +99,11 @@ Kirby::plugin('moritzebeling/headless', [
 	'pageMethods' => [
 		'json' => function ( bool $full = false ): array {
 
-			$hasImages = $this->hasImages();
-
 			$json = [
 				'title' => $this->title()->value(),
 				'path' => $this->id(),
-				'template' => $this->intendedTemplate()->name(),
-				'image' => $hasImages ? $this->image()->json() : null
+				'template' => $this->intendedTemplate()->name()
 			];
-
-			if( $full === true && $hasImages === true ){
-				$json['images'] = $this->images()->json();
-			}
-
-			if( $full === true && $this->hasListedChildren() ){
-				$json['pages'] = $this->children()->listed()->json();
-			}
 
 			return $json;
 		},
@@ -132,11 +121,9 @@ Kirby::plugin('moritzebeling/headless', [
 	'pagesMethods' => [
         'json' => function ( bool $full = false ): array {
 			$json = [];
-
 			foreach($this as $page) {
 				$json[] = $page->json( $full );
 			}
-
 			return $json;
         },
 		'clearCache' => function ( Kirby\Cache\Cache $cache = null, bool $populate = true ) {
@@ -153,6 +140,15 @@ Kirby::plugin('moritzebeling/headless', [
 	'fileMethods' => [
 		'json' => function ( string $size = 'l' ): array {
 
+			$json = [
+				'alt' => $this->alt(),
+				'url' => $this->url()
+			];
+
+			if( !$this->isResizable() || $this->extension() === 'gif' ){
+				return $json;
+			}
+
 			$srcset = [];
 			foreach( option('moritzebeling.headless.thumbs.srcset') as $width ){
 				$srcset[] = [
@@ -161,18 +157,11 @@ Kirby::plugin('moritzebeling/headless', [
 				];
 			}
 
-			$json = [
-				'alt' => $this->alt(),
-				'caption' => $this->caption()->kirbytextinline(),
+			return array_merge($json,[
 				'url' => $this->thumb( option('moritzebeling.headless.thumbs.thumb') )->url(),
+				'caption' => $this->caption()->kirbytextinline(),
 				'srcset' => $srcset
-			];
-
-			if( $includeParent === true ){
-				$json['parent'] = $this->parent()->id();
-			}
-
-			return $json;
+			]);
         },
 		'clearCache' => function () {
             $this->parent()->clearCache();
@@ -182,11 +171,9 @@ Kirby::plugin('moritzebeling/headless', [
 	'filesMethods' => [
         'json' => function ( string $size = 'l' ): array {
 			$json = [];
-
 			foreach($this as $file) {
-				$json[] = $file->json();
+				$json[] = $file->json( $size );
 			}
-
 			return $json;
         }
 	],

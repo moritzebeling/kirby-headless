@@ -15,8 +15,8 @@ The plugin adds the following methods:
 - `$site->json(): array`
 - `$page->json( bool $full = false ): array`
 - `$pages->json( bool $full = false ): array`
-- `$file->json( bool $includeParent = false ): array`
-- `$files->json( bool $includeParent = false ): array`
+- `$file->json( string $thumbSize = 'l' ): array`
+- `$files->json( string $thumbSize = 'l' ): array`
 
 which are triggered within the route. Take a look at the code to see what fields are included by default.
 
