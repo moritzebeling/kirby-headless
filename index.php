@@ -82,11 +82,18 @@ Kirby::plugin('moritzebeling/headless', [
 
             $json = [
 				'title' => $this->title()->value(),
-				'pages' => $this->children()->listed()->json()
+				'listed' => $this->children()->listed()->json(),
+				'unlisted' => $this->children()->unlisted()->json(),
 			];
 
 			return $json;
-        }
+        },
+		'clearCache' => function ( Kirby\Cache\Cache $cache = null ) {
+            if( $cache === null ){
+                $cache = $this->kirby()->cache('encodinggroup.jsonApi');
+            }
+            $cache->flush();
+        },
 	],
 
 	'pageMethods' => [
@@ -111,6 +118,15 @@ Kirby::plugin('moritzebeling/headless', [
 
 			return $json;
 		},
+		'clearCache' => function ( Kirby\Cache\Cache $cache = null, bool $populate = true ) {
+            if( $cache === null ){
+                $cache = $this->kirby()->cache('encodinggroup.jsonApi');
+            }
+            $cache->remove( $this->id() );
+            if( $populate && $parent = $this->parent() ){
+                $parent->clearCache( $cache );
+            }
+        },
 	],
 
 	'pagesMethods' => [
@@ -122,11 +138,20 @@ Kirby::plugin('moritzebeling/headless', [
 			}
 
 			return $json;
-        }
+        },
+		'clearCache' => function ( Kirby\Cache\Cache $cache = null, bool $populate = true ) {
+            if( $cache === null ){
+                $cache = $this->kirby()->cache('encodinggroup.jsonApi');
+            }
+            foreach( $this as $page ){
+                $page->clearCache( $cache, $populate );
+                $populate = false;
+            }
+        },
 	],
 
 	'fileMethods' => [
-		'json' => function ( bool $includeParent = false ): array {
+		'json' => function ( string $size = 'l' ): array {
 
 			$srcset = [];
 			foreach( option('moritzebeling.headless.thumbs.srcset') as $width ){
@@ -148,15 +173,18 @@ Kirby::plugin('moritzebeling/headless', [
 			}
 
 			return $json;
-        }
+        },
+		'clearCache' => function () {
+            $this->parent()->clearCache();
+        },
 	],
 
 	'filesMethods' => [
-        'json' => function ( bool $includeParent = false ): array {
+        'json' => function ( string $size = 'l' ): array {
 			$json = [];
 
 			foreach($this as $file) {
-				$json[] = $file->json( $includeParent );
+				$json[] = $file->json();
 			}
 
 			return $json;

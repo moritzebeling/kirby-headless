@@ -1,22 +1,5 @@
 <?php
 
-function flushCache( $id = false ){
-
-	$cache = kirby()->cache('moritzebeling.headless');
-
-	if( $id === false ){
-        // flush whole cache
-		$cache->flush();
-	} else {
-        // flush cache of this page/file and every of its parents
-		$parts = explode( '/', $id );
-		foreach( $parts as $part ){
-			$cache->remove( implode( '/', $parts ) );
-			array_pop( $parts );
-		}
-	}
-}
-
 return array(
     'page.*:after' => function ( $event ) {
         $page = $event->page() ? $event->page() : $event->newPage();
@@ -26,9 +9,8 @@ return array(
             case 'changeSlug':
             case 'changeStatus':
             case 'changeTitle':
-            case 'duplicate':
             case 'update':
-                flushCache( $page->id() );
+                $page->clearCache();
         }
     },
     'file.*:after' => function ( $event ) {
@@ -40,10 +22,15 @@ return array(
             case 'changeSort':
             case 'replace':
             case 'update':
-                flushCache( $file->parentId() );
+                $page->clearCache();
         }
     },
-    'site.update:after' => function () {
-        flushCache('site');
+    'site.*:after' => function ( $event ) {
+        $site = $site->page() ? $site->page() : $site->newSite();
+        switch ( $event->action() ) {
+            case 'changeTitle':
+            case 'update':
+                $site->clearCache();
+        }
     }
 );
