@@ -6,7 +6,7 @@ use moritzebeling\headless\jsonResponse as jsonResponse;
 Kirby::plugin('moritzebeling/headless', [
 
 	'options' => [
-		'cache' => true,
+		'cache' => false,
 		'expires' => 1440,
 		'thumbs' => [
 			'thumb' => ['width' => 426],
@@ -83,7 +83,7 @@ Kirby::plugin('moritzebeling/headless', [
             $json = [
 				'title' => $this->title()->value(),
 				'listed' => $this->children()->listed()->json(),
-				'unlisted' => $this->children()->unlisted()->json(),
+				'unlisted' => $this->children()->unlisted()->json()
 			];
 
 			return $json;
@@ -141,11 +141,11 @@ Kirby::plugin('moritzebeling/headless', [
 		'json' => function ( string $size = 'l' ): array {
 
 			$json = [
-				'alt' => $this->alt(),
-				'url' => $this->url()
+				'alt' => $this->alt()->value(),
+				'url' => $this->url(),
 			];
 
-			if( !$this->isResizable() || $this->extension() === 'gif' ){
+			if( !$size || !$this->isResizable() || $this->extension() === 'gif' ){
 				return $json;
 			}
 
@@ -159,7 +159,7 @@ Kirby::plugin('moritzebeling/headless', [
 
 			return array_merge($json,[
 				'url' => $this->thumb( option('moritzebeling.headless.thumbs.thumb') )->url(),
-				'caption' => $this->caption()->kirbytextinline(),
+				'caption' => $this->caption()->kirbytextinline()->value(),
 				'srcset' => $srcset
 			]);
         },
@@ -176,6 +176,42 @@ Kirby::plugin('moritzebeling/headless', [
 			}
 			return $json;
         }
+	],
+
+	'fieldMethods' => [
+        'json' => function ( $field, string $type = 'text' ) {
+			if( $field->isEmpty() ){
+				return false;
+			}
+			switch ($type) {
+				case 'image':
+				case 'file':
+					if( $file = $field->parent()->file( $field->yaml()[0] ) ){
+						$file = $file->json();
+					}
+					return $file;
+					break;
+				case 'images':
+				case 'files':
+					$files = [];
+					foreach( $field->yaml() as $file ){
+						if( $file = $field->parent()->file( $file ) ){
+							$files[] = $file->json();
+						}
+					}
+					return $files;
+					break;
+				case 'kirbytext':
+					return $field->kirbytext()->value();
+					break;
+				case 'blocks':
+					return $field->toBlocks()->toHtml();
+					break;
+				default:
+					return $field->value();
+					break;
+			}
+        },
 	],
 
 ]);
