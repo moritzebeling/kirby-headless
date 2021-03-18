@@ -2,35 +2,41 @@
 
 return array(
     'page.*:after' => function ( $event ) {
-        $page = $event->page() ? $event->page() : $event->newPage();
         switch ( $event->action() ) {
-            case 'create':
-            case 'delete':
+            case 'changeNum':
             case 'changeSlug':
             case 'changeStatus':
+            case 'changeTemplate':
             case 'changeTitle':
             case 'update':
-                $page->clearCache();
+                $event->newPage()->clearCache();
+                break;
+            case 'create':
+            case 'delete':
+                $event->page()->clearCache();
+                break;
         }
     },
     'file.*:after' => function ( $event ) {
-        $file = $event->file() ? $event->file() : $event->newFile();
         switch ( $event->action() ) {
-            case 'create':
-            case 'delete':
             case 'changeName':
             case 'changeSort':
             case 'replace':
             case 'update':
-                $page->clearCache();
+                $event->newFile()->clearCache();
+                break;
+            case 'create':
+            case 'delete':
+                $event->file()->clearCache();
+                break;
         }
     },
     'site.*:after' => function ( $event ) {
-        $site = $site->page() ? $site->page() : $site->newSite();
         switch ( $event->action() ) {
             case 'changeTitle':
             case 'update':
-                $site->clearCache();
+                $event->newSite()->clearCache();
+                break;
         }
     }
 );

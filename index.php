@@ -19,56 +19,62 @@ Kirby::plugin('moritzebeling/headless', [
         'site' => require 'controllers/site.php',
     ],
 
-	'routes' => [
-		[
-			'pattern' => 'json/(:all)',
-			'method' => 'GET',
-			'action'  => function ( $id ) {
+	'api' => [
+		'routes' => function ($kirby) {
+			return [
+				[
+					'pattern' => 'json(:all)',
+					'method' => 'GET',
+					'action'  => function ( $request ) use( $kirby ) {
 
-				// if $id is empty, return site data
-				$id = $id ? $id : 'site';
-				$kirby = kirby();
+						$request = trim( $request, '/' );
+						$request = !$request ? 'site' : $request;
+						$target = $request === 'site' ? $kirby->site() : $kirby->page( $request );
 
-				$response = new jsonResponse( $id );
+						$response = [
+							'status' => 404,
+							'request' => $request,
+							'language' => $kirby->language()->code(),
+							'cached' => false,
+							'data' => []
+						];
 
-				if( option('moritzebeling.headless.cache', false) ){
-					$cache = $kirby->cache('moritzebeling.headless');
+						if( !$target ){
+							// return 404
+							return $response;
+						}
 
-					if( $data = $cache->get( $id ) ){
-						// response is cached and ready to go
-						$response->data( $data, true );
-						return $response->json();
+						if( option('moritzebeling.headless.cache', false) ){
+							$id = $response['language'] . '/' . $request;
+							$cache = $kirby->cache('moritzebeling.headless');
+							if( $data = $cache->get( $id ) ){
+								// return from cache
+								return array_merge( $response, [
+									'status' => 200,
+									'cached' => true,
+									'data' => $data
+								]);
+							}
+						}
+
+						// get fresh data
+						$data = $target->json( true );
+
+						if( option('moritzebeling.headless.cache', false) ){
+							// save to cache
+							$cache->set( $id, $data,
+								option('moritzebeling.headless.expires',1440)
+							);
+						}
+
+						return array_merge( $response, [
+							'status' => 200,
+							'data' => $data
+						]);
 					}
-				}
-
-				if( $id === 'site' ){
-					// global site information
-					$data = $kirby->site()->json( true );
-
-				} else if ( $page = $kirby->page( $id ) ){
-					// page
-					$data = $page->json( true );
-
-				} else {
-					// page not found
-					$response->status( 404 );
-					return $response->json();
-
-				}
-
-				if( option('moritzebeling.headless.cache', false) ){
-					// save to cache
-					$cache->set(
-						$id,
-						$data,
-						option('moritzebeling.headless.expires',1440)
-					);
-				}
-
-				$response->data( $data );
-				return $response->json();
-			}
-		],
+				]
+			];
+		}
 	],
 
 	// clear cache with hooks
@@ -83,7 +89,7 @@ Kirby::plugin('moritzebeling/headless', [
             $json = [
 				'title' => $this->title()->value(),
 				'listed' => $this->children()->listed()->json(),
-				'unlisted' => $this->children()->unlisted()->json()
+				'unlisted' => $this->footerMenu()->toPages()->json()
 			];
 
 			return $json;
@@ -104,6 +110,13 @@ Kirby::plugin('moritzebeling/headless', [
 				'path' => $this->id(),
 				'template' => $this->intendedTemplate()->name()
 			];
+			if( $full ){
+				$json['translations'] = [];
+				foreach( $this->kirby()->languages() as $lang ){
+					$path = r( $lang->path(), $lang->path() . '/', '') . $this->uri( $lang->code() );
+					$json['translations'][$lang->code()] = $path;
+				}
+			}
 
 			return $json;
 		},
