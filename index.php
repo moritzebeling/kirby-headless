@@ -1,8 +1,5 @@
 <?php
 
-load([ 'moritzebeling\\headless\\jsonResponse' => 'src/jsonResponse.php' ], __DIR__);
-use moritzebeling\headless\jsonResponse as jsonResponse;
-
 Kirby::plugin('moritzebeling/headless', [
 
 	'options' => [
@@ -13,11 +10,6 @@ Kirby::plugin('moritzebeling/headless', [
 			'srcset' => [640, 854, 1280, 1920],
 		],
 	],
-
-	'controllers' => [
-        'global' => require 'controllers/global.php',
-        'site' => require 'controllers/site.php',
-    ],
 
 	'api' => [
 		'routes' => function ($kirby) {
@@ -78,7 +70,7 @@ Kirby::plugin('moritzebeling/headless', [
 	],
 
 	// clear cache with hooks
-	'hooks'  => require_once __DIR__ . '/src/hooks.php',
+	'hooks'  => require_once __DIR__ . '/hooks/hooks.php',
 
 	// json() methods for $site $page $pages $file $files
 	// extend them to your needs here or using mage models
