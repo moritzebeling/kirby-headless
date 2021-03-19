@@ -87,6 +87,7 @@ Kirby::plugin('moritzebeling/headless', [
         'json' => function ( bool $full = false ): array {
 
             $json = [
+				'url' => '/'.$this->kirby()->language()->code(),
 				'title' => $this->title()->value(),
 				'listed' => $this->children()->listed()->json(),
 				'unlisted' => $this->footerMenu()->toPages()->json()
@@ -105,18 +106,21 @@ Kirby::plugin('moritzebeling/headless', [
 	'pageMethods' => [
 		'json' => function ( bool $full = false ): array {
 
-			$lang = $this->kirby()->language()->code();
+			$lang = $this->kirby()->language();
 			$json = [
 				'title' => $this->title()->value(),
-				'path' => $lang .'/'. $this->uri( $lang ),
+				'path' => $lang->code() .'/'. $this->uri( $lang->code() ),
 				'template' => $this->intendedTemplate()->name()
 			];
 			if( $full ){
 
-				$json['translations'] = [];
-				foreach( $this->kirby()->languages() as $lang ){
-					$json['translations'][$lang->code()] = $lang->path() . '/' . $this->uri( $lang->code() );
-				}
+				$json['text'] = $this->text()->json('kirbytext');
+
+				$other = $this->kirby()->languages()->not( $lang )->first();
+				$json['translation'] = [
+					'lang' => $other->code(),
+					'url' => $this->urlForLanguage( $other->code() )
+				];
 
 			}
 
