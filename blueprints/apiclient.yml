@@ -1,0 +1,15 @@
+title: (API client)
+description:
+  en: Do not use
+  de: Nicht benutzen
+
+permissions:
+  access:
+    panel: true
+    users: false
+    site: false
+    settings: false
+  site: false
+  pages: false
+  users: false
+  files: false

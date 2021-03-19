@@ -11,6 +11,12 @@ Kirby::plugin('moritzebeling/headless', [
 		],
 	],
 
+	'blueprints' => [
+        'users/apiclient' => __DIR__ . '/blueprints/apiclient.yml',
+    ],
+
+	'hooks'  => require_once __DIR__ . '/hooks/hooks.php',
+
 	'api' => [
 		'routes' => function ($kirby) {
 			return [
@@ -68,9 +74,6 @@ Kirby::plugin('moritzebeling/headless', [
 			];
 		}
 	],
-
-	// clear cache with hooks
-	'hooks'  => require_once __DIR__ . '/hooks/hooks.php',
 
 	// json() methods for $site $page $pages $file $files
 	// extend them to your needs here or using mage models
