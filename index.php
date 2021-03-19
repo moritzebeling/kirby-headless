@@ -105,17 +105,19 @@ Kirby::plugin('moritzebeling/headless', [
 	'pageMethods' => [
 		'json' => function ( bool $full = false ): array {
 
+			$lang = $this->kirby()->language()->code();
 			$json = [
 				'title' => $this->title()->value(),
-				'path' => $this->id(),
+				'path' => $lang .'/'. $this->uri( $lang ),
 				'template' => $this->intendedTemplate()->name()
 			];
 			if( $full ){
+
 				$json['translations'] = [];
 				foreach( $this->kirby()->languages() as $lang ){
-					$path = r( $lang->path(), $lang->path() . '/', '') . $this->uri( $lang->code() );
-					$json['translations'][$lang->code()] = $path;
+					$json['translations'][$lang->code()] = $lang->path() . '/' . $this->uri( $lang->code() );
 				}
+
 			}
 
 			return $json;
