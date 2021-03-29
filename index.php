@@ -6,9 +6,8 @@ Kirby::plugin('moritzebeling/headless', [
 		'cache' => false,
 		'expires' => 1440,
 		'thumbs' => [
-			'thumb' => ['width' => 426],
-			'srcset' => [640, 854, 1280, 1920],
-		],
+			'srcset' => [640,854,1280,1920]
+		]
 	],
 
 	'blueprints' => [
@@ -74,6 +73,28 @@ Kirby::plugin('moritzebeling/headless', [
 			];
 		}
 	],
+	'routes' => [
+		[
+			'pattern' => '(:all).json',
+			'method' => 'GET',
+			'language' => '*',
+			'action'  => function ( $language, $path ){
+
+				if( !option('debug') ){
+					return [];
+				}
+
+				if( $path === 'site' ){
+					return kirby()->site()->json( true );
+				} else if( $page = page( $path ) ){
+					return $page->json( true );
+				} else {
+					return [];
+				}
+
+			}
+		]
+	],
 
 	// json() methods for $site $page $pages $file $files
 	// extend them to your needs here or using mage models
@@ -104,7 +125,7 @@ Kirby::plugin('moritzebeling/headless', [
 			$lang = $this->kirby()->language();
 			$json = [
 				'title' => $this->title()->value(),
-				'path' => $lang->code() .'/'. $this->uri( $lang->code() ),
+				'path' => '/'. $lang->code() .'/'. $this->uri( $lang->code() ),
 				'template' => $this->intendedTemplate()->name()
 			];
 			if( $full ){
@@ -156,6 +177,7 @@ Kirby::plugin('moritzebeling/headless', [
 
 			$json = [
 				'alt' => $this->alt()->value(),
+				'title' => $this->title()->value(),
 				'url' => $this->url(),
 			];
 
@@ -163,16 +185,24 @@ Kirby::plugin('moritzebeling/headless', [
 				return $json;
 			}
 
+			$sizes = option( 'thumbs.srcsets.'.$size,
+				option('moritzebeling.headless.thumbs.srcset') );
 			$srcset = [];
-			foreach( option('moritzebeling.headless.thumbs.srcset') as $width ){
+			foreach( $sizes as $width ){
+				if( is_array( $width ) ){
+					$url = $this->thumb( $width )->url();
+					$width = $width['width'];
+				} else {
+					$url = $this->thumb(['width' => $width])->url();
+				}
 				$srcset[] = [
 					'width' => $width,
-					'url' => $this->thumb(['width' => $width])->url(),
+					'url' => $url
 				];
 			}
 
 			return array_merge($json,[
-				'url' => $this->thumb( option('moritzebeling.headless.thumbs.thumb') )->url(),
+				'url' => $this->thumb( $size )->url(),
 				'caption' => $this->caption()->kirbytextinline()->value(),
 				'srcset' => $srcset
 			]);
@@ -183,16 +213,22 @@ Kirby::plugin('moritzebeling/headless', [
 	],
 
 	'filesMethods' => [
-        'json' => function ( string $size = 'l' ): array {
+        'json' => function ( string $size = 'l' ) {
 			$json = [];
 			foreach($this as $file) {
 				$json[] = $file->json( $size );
 			}
-			return $json;
+			return count($json) > 0 ? $json : false;
         }
 	],
 
 	'fieldMethods' => [
+        'urlHost' => function ( $field ): string {
+			if( $host = parse_url( $field->value, PHP_URL_HOST ) ){
+				return $host;
+			}
+			return '';
+		},
         'json' => function ( $field, string $type = 'text' ) {
 			if( $field->isEmpty() ){
 				return false;
@@ -206,20 +242,56 @@ Kirby::plugin('moritzebeling/headless', [
 					return $file;
 					break;
 				case 'images':
-				case 'files':
 					$files = [];
 					foreach( $field->yaml() as $file ){
 						if( $file = $field->parent()->file( $file ) ){
 							$files[] = $file->json();
 						}
 					}
-					return $files;
+					return count($files) > 0 ? $files : false;
+					break;
+				case 'files':
+					$files = [];
+					foreach( $field->yaml() as $file ){
+						if( $file = $field->parent()->file( $file ) ){
+							$f = array_merge( $file->json(), [
+								'size' => F::niceSize( F::size( $file->root() ) )
+							]);
+							unset( $f['caption'] );
+							unset( $f['srcset'] );
+							$files[] = $f;
+						}
+					}
+					return count($files) > 0 ? $files : false;
 					break;
 				case 'kirbytext':
 					return $field->kirbytext()->value();
 					break;
+				case 'yaml':
+					$yaml = $field->yaml();
+					return count($yaml) > 0 ? $yaml : false;
+					break;
 				case 'blocks':
 					return $field->toBlocks()->toHtml();
+					break;
+				case 'link':
+					return [
+						'href' => $field->value(),
+						'title' => $field->urlHost()
+					];
+					break;
+				case 'links':
+					$links = [];
+					foreach( $field->toStructure() as $link ){
+						if( $field->href()->isEmpty() ){
+							continue;
+						}
+						$links[] = [
+							'title' => $link->title()->isNotEmpty() ? $link->title()->value() : $link->href()->urlHost(),
+							'href' => $link->href()->value(),
+						];
+					}
+					return count($links) > 0 ? $links : false;
 					break;
 				default:
 					return $field->value();
