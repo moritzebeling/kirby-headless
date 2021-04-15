@@ -3,7 +3,7 @@
 Kirby::plugin('moritzebeling/headless', [
 
 	'options' => [
-		'cache' => false,
+		'cache' => true,
 		'expires' => 1440,
 		'thumbs' => [
 			'srcset' => [640,854,1280,1920]
@@ -22,7 +22,7 @@ Kirby::plugin('moritzebeling/headless', [
 				[
 					'pattern' => 'json(:all)',
 					'method' => 'GET',
-					'action'  => function ( $request ) use( $kirby ) {
+					'action'  => function ( $request ) use ( $kirby ) {
 
 						$request = trim( $request, '/' );
 						$request = !$request ? 'site' : $request;
@@ -37,8 +37,7 @@ Kirby::plugin('moritzebeling/headless', [
 						];
 
 						if( !$target ){
-							// return 404
-							return $response;
+							$target = $kirby->site()->page('error');
 						}
 
 						if( option('moritzebeling.headless.cache', false) ){
@@ -182,6 +181,7 @@ Kirby::plugin('moritzebeling/headless', [
 			];
 
 			if( !$size || !$this->isResizable() || $this->extension() === 'gif' ){
+				$json['download'] = $this->type() !== 'document';
 				return $json;
 			}
 
@@ -225,9 +225,9 @@ Kirby::plugin('moritzebeling/headless', [
 	'fieldMethods' => [
         'urlHost' => function ( $field ): string {
 			if( $host = parse_url( $field->value, PHP_URL_HOST ) ){
-				return $host;
+				return str_replace('www.','',$host);
 			}
-			return '';
+			return $field->value;
 		},
         'json' => function ( $field, string $type = 'text' ) {
 			if( $field->isEmpty() ){
@@ -292,6 +292,29 @@ Kirby::plugin('moritzebeling/headless', [
 						];
 					}
 					return count($links) > 0 ? $links : false;
+					break;
+				case 'featuredPages':
+					$pages = [];
+					foreach( $field->toStructure() as $item ){
+						$page = $item->page()->toPage();
+						if( !$page ){
+							return false;
+						}
+						$data = $page->json();
+
+						if( $item->title()->isNotEmpty() ){
+							$data['title'] = $item->title()->json();
+						}
+
+						if( $image = $item->image()->toFile() ){
+							$data['image'] = $image->json('portrait');
+						} else {
+							$data['image'] = $page->titleImage(false, 'portrait');
+						}
+
+						$pages[] = $data;
+					}
+					return $pages;
 					break;
 				default:
 					return $field->value();
