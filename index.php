@@ -180,7 +180,7 @@ Kirby::plugin('moritzebeling/headless', [
                 $cache = $this->kirby()->cache('moritzebeling.headless');
             }
 			foreach( $this->kirby()->languages() as $lang ){
-				$cache->remove( $lang->code() .'/'. $this->id() );
+				$cache->remove( $lang->code() .'/'. $this->uri( $lang->code() ) );
 			}
             if( $populate && $parent = $this->parent() ){
                 $parent->clearCache( $cache );
