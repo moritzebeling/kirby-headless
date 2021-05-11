@@ -77,19 +77,53 @@ Kirby::plugin('moritzebeling/headless', [
 			'pattern' => '(:all).json',
 			'method' => 'GET',
 			'language' => '*',
-			'action'  => function ( $language, $path ){
+			'action'  => function ( $language, $request ){
 
-				if( !option('debug') ){
-					return [];
+				$kirby = kirby();
+
+				$request = trim( $request, '/' );
+				$request = !$request ? 'site' : $request;
+				$target = $request === 'site' ? $kirby->site() : $kirby->page( $request );
+
+				$response = [
+					'status' => 404,
+					'request' => $request,
+					'language' => $language->code(),
+					'cached' => false,
+					'data' => []
+				];
+
+				if( !$target ){
+					$target = $kirby->site()->page('error');
 				}
 
-				if( $path === 'site' ){
-					return kirby()->site()->json( true );
-				} else if( $page = page( $path ) ){
-					return $page->json( true );
-				} else {
-					return [];
+				if( option('moritzebeling.headless.cache', false) ){
+					$id = $response['language'] . '/' . $request;
+					$cache = $kirby->cache('moritzebeling.headless');
+					if( $data = $cache->get( $id ) ){
+						// return from cache
+						return array_merge( $response, [
+							'status' => 200,
+							'cached' => true,
+							'data' => $data
+						]);
+					}
 				}
+
+				// get fresh data
+				$data = $target->json( true );
+
+				if( option('moritzebeling.headless.cache', false) ){
+					// save to cache
+					$cache->set( $id, $data,
+						option('moritzebeling.headless.expires',1440)
+					);
+				}
+
+				return array_merge( $response, [
+					'status' => 200,
+					'data' => $data
+				]);
 
 			}
 		]
@@ -112,7 +146,7 @@ Kirby::plugin('moritzebeling/headless', [
         },
 		'clearCache' => function ( Kirby\Cache\Cache $cache = null ) {
             if( $cache === null ){
-                $cache = $this->kirby()->cache('encodinggroup.jsonApi');
+                $cache = $this->kirby()->cache('moritzebeling.headless');
             }
             $cache->flush();
         },
@@ -143,9 +177,11 @@ Kirby::plugin('moritzebeling/headless', [
 		},
 		'clearCache' => function ( Kirby\Cache\Cache $cache = null, bool $populate = true ) {
             if( $cache === null ){
-                $cache = $this->kirby()->cache('encodinggroup.jsonApi');
+                $cache = $this->kirby()->cache('moritzebeling.headless');
             }
-            $cache->remove( $this->id() );
+			foreach( $this->kirby()->languages() as $lang ){
+				$cache->remove( $lang->code() .'/'. $this->id() );
+			}
             if( $populate && $parent = $this->parent() ){
                 $parent->clearCache( $cache );
             }
@@ -162,7 +198,7 @@ Kirby::plugin('moritzebeling/headless', [
         },
 		'clearCache' => function ( Kirby\Cache\Cache $cache = null, bool $populate = true ) {
             if( $cache === null ){
-                $cache = $this->kirby()->cache('encodinggroup.jsonApi');
+                $cache = $this->kirby()->cache('moritzebeling.headless');
             }
             foreach( $this as $page ){
                 $page->clearCache( $cache, $populate );
